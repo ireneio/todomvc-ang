@@ -1,0 +1,23 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.row {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.col {
+  margin-left: -15px;
+  margin-right: -15px;
+}
+
+.main {
+  &__title {
+    text-align: center;
+    font-size: 100px;
+    color: rgba(175, 47, 47, 0.15);
+    font-weight: 100;
+  }
+}

@@ -1,0 +1,69 @@
+.todoList {
+  box-shadow: 0 2px 4px 0 rgb(0 0 0 / 20%), 0 25px 50px 0 rgb(0 0 0 / 10%);
+  font-weight: 100;
+  &__input {
+    display: flex;
+    align-items: center;
+    padding: 16px 16px 16px 60px;
+    border: none;
+    background-color: rgba(0, 0, 0, .003);
+    box-shadow: inset 0 -2px 1px rgb(0 0 0 / 3%);
+    font-size: 24px;
+    color: #4d4d4d;
+    &Cb {
+      font-size: 24px;
+      margin-left: -36px;
+      cursor: pointer;
+    }
+    &Item {
+      margin-left: 24px;
+      width: 100%;
+      height: 100%;
+      font-size: 24px;
+      font-weight: 100;
+      border: none;
+      background-color: rgba(0, 0, 0, .003);
+      &:focus {
+        outline: none;
+        font-weight: 100;
+      }
+    }
+  }
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    &Tabs {
+      display: flex;
+    }
+    &TabsItem {
+      padding: 4px 8px;
+      margin: 0 2px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      &--active {
+        border-radius: 4px;
+        border: 1px solid rgba(175, 47, 47, 0.15);
+      }
+    }
+    &Clear {
+      cursor: pointer;
+    }
+  }
+  &__pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    &Btn {
+      margin-left: 12px;
+      margin-right: 12px;
+      cursor: pointer;
+      &--disabled {
+        color: #ddd;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

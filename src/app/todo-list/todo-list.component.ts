@@ -1,4 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import {Apollo, gql} from 'apollo-angular';
+import { subscribe } from 'graphql';
 
 @Component({
   selector: 'app-todo-list',
@@ -6,7 +8,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
   styleUrls: ['./todo-list.component.scss']
 })
 export class TodoListComponent implements OnInit {
-  constructor() { }
+  constructor(private apollo: Apollo) { }
 
   public inputVal: string = ''
 
@@ -121,5 +123,24 @@ export class TodoListComponent implements OnInit {
 
   ngOnInit(): void {
     this.pageUpdateHelper()
+    console.log(this.apollo.watchQuery)
+    this.apollo
+      .watchQuery({
+        // fetchPolicy: 'cache-and-network',
+        query: gql`
+          {
+            list {
+                id
+                value
+                status
+            }
+          }
+        `,
+      })
+      .valueChanges.subscribe((result: any) => {
+        console.log(result)
+      }, (error: any) => {
+        console.log(error)
+      })
   }
 }

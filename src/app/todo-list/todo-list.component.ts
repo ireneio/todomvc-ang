@@ -1,6 +1,7 @@
 import { temporaryAllocator } from '@angular/compiler/src/render3/view/util';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-todo-list',
@@ -32,13 +33,13 @@ export class TodoListComponent implements OnInit {
     this.getItems()
   }
 
-  public handleItemRemove(val: any): void {
+  public async handleItemRemove(val: any): Promise<void> {
     const id = this.dataOg.filter((item: any) => {
       return item.id === val.id
     })[0].id
 
-    this.deleteItem(id)
-    this.getItems()
+    await this.deleteItem(id)
+    await this.getItems()
   }
 
   // @ts-ignore
@@ -50,11 +51,11 @@ export class TodoListComponent implements OnInit {
 
   public currentTab: number = 0
 
-  public handleEnter(): void {
-    this.createItem(this.inputVal)
+  public async handleEnter(): Promise<void> {
+    await this.createItem(this.inputVal)
     this.inputVal = ''
     this.inputValNative.nativeElement.value = ''
-    this.getItems()
+    await this.getItems()
   }
 
   public handleItemCheckAll(): void {
@@ -64,19 +65,15 @@ export class TodoListComponent implements OnInit {
     this.checkMode = !this.checkMode
   }
 
-  public handleTabUpdate(val: number): void {
+  public async handleTabUpdate(val: number): Promise<void> {
     this.currentTab = val
-    let tempArr = this.dataOg.filter(item => {
-      if(val === 0) {
-        return item
-      } else if(val === 1) {
-        return item.checked === false
-      } else if(val === 2) {
-        return item.checked === true
-      }
-    })
-    tempArr = this.pageUpdateHelper(tempArr)
-    this.data = tempArr
+    if(val === 1) {
+      await this.getItemsSelect(0)
+    } else if(val === 2) {
+      await this.getItemsSelect(-1)
+    } else {
+      await this.getItems()
+    }
   }
 
   public handleClearCompleted(): void {
@@ -89,7 +86,7 @@ export class TodoListComponent implements OnInit {
     }
   }
 
-  public pageLimit: number = 2
+  public pageLimit: number = 5
 
   public get totalPages(): number {
     return Math.ceil(this.dataOg.length / this.pageLimit)
@@ -116,22 +113,35 @@ export class TodoListComponent implements OnInit {
       const max = min + this.pageLimit - 1
       return index <= max && index >= min
     })
-    console.log(res)
     return res
   }
 
-  private getItems(): void {
-    this.gqlQueryRequestHelper(`{
-      list {
-        id
-        status
-        value
+  private async getItems(): Promise<void> {
+    await this.gqlQueryRequestHelper(`
+      query {
+        list {
+          id
+          status
+          value
+        }
       }
-    }`)
+    `)
   }
 
-  private updateItem({ id, status, value }: {id: number, status?: number, value?: string}): void {
-    this.gqlMutationRequestHelper(`
+  private async getItemsSelect(status: number): Promise<void> {
+    await this.gqlQueryRequestHelper(`
+      query {
+        listQuery(status: ${status}) {
+          id
+          status
+          value
+        }
+      }
+    `)
+  }
+
+  private async updateItem({ id, status, value }: {id: number, status?: number, value?: string}): Promise<void> {
+    await this.gqlMutationRequestHelper(`
       mutation {
         update(id: ${id + ',' + (status ? 'status:' + status : '') + ',' + (value ? 'value:' + `"${value}"` : '')}) {
             id,
@@ -142,8 +152,8 @@ export class TodoListComponent implements OnInit {
     `)
   }
 
-  private deleteItem(id: number): void {
-    this.gqlMutationRequestHelper(`
+  private async deleteItem(id: number): Promise<void> {
+    await this.gqlMutationRequestHelper(`
       mutation {
         delete(id: ${id}) {
             id,
@@ -154,8 +164,8 @@ export class TodoListComponent implements OnInit {
     `)
   }
 
-  private createItem(value: string): void {
-    this.gqlMutationRequestHelper(`
+  private async createItem(value: string): Promise<void> {
+    await this.gqlMutationRequestHelper(`
       mutation {
         create(value: "${value}") {
             id,
@@ -166,42 +176,56 @@ export class TodoListComponent implements OnInit {
     `)
   }
 
-  private dataSideEffectHelper(data: { list: any }): void {
-    this.dataOg = [...data.list].map((item: any) => {
-      return { ...item, val: item.value, checked: item.status === -1 ? true : false }
-    })
+  private dataSideEffectHelper(data: { list?: any, listQuery?: any }): void {
+    if(data && data.list) {
+      this.dataOg = [...data.list].map((item: any) => {
+        return { ...item, val: item.value, checked: item.status === -1 ? true : false }
+      })
+    } else if (data && data.listQuery) {
+      this.dataOg = [...data.listQuery].map((item: any) => {
+        return { ...item, val: item.value, checked: item.status === -1 ? true : false }
+      })
+    }
+    this.currentPage = 1
     this.data = this.pageUpdateHelper()
   }
 
   private gqlQueryRequestHelper(query: string): Promise<any> {
-    const res = this.apollo
+    return new Promise((resolve, reject) => {
+      this.apollo
       .watchQuery({
         query: gql(query),
       })
-      .valueChanges.subscribe((result: any) => {
+      .valueChanges
+      .subscribe((result: any) => {
         try {
           const { data } = result
           console.log('got data: ', data)
-          return this.dataSideEffectHelper(data)
+          this.dataSideEffectHelper(data)
+          resolve(true)
         } catch(e) {
           console.log(e.message)
+          reject(e.message)
         }
       })
-      return Promise.resolve(res)
-  }
-
-  private gqlMutationRequestHelper(query: string): void {
-    this.apollo.mutate({
-      mutation: gql(query)
-    }).subscribe(({ data }) => {
-      console.log('got data', data)
-    },(error) => {
-      console.log('there was an error sending the query', error);
     })
   }
 
-  ngOnInit(): void {
-    this.pageUpdateHelper()
-    this.getItems()
+  private gqlMutationRequestHelper(query: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.apollo.mutate({
+        mutation: gql(query)
+      }).subscribe(({ data }) => {
+        console.log('got data', data)
+        resolve(true)
+      },(error) => {
+        console.log('there was an error sending the query', error)
+        reject(error)
+      })
+    })
+  }
+
+  async ngOnInit(): Promise<void> {
+    await this.getItems()
   }
 }

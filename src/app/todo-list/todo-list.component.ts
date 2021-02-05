@@ -22,6 +22,8 @@ export class TodoListComponent implements OnInit {
 
   private dataOg: Array<Todo.ItemFe> = []
 
+  public loading: boolean = false
+
   public data: Array<Todo.ItemFe> = [
     ...this.dataOg
   ]
@@ -31,6 +33,7 @@ export class TodoListComponent implements OnInit {
   }
 
   public async handleItemCheck(val: Todo.ItemFe): Promise<void> {
+    this.loading = true
     const item: Todo.ItemFe = this.dataOg.filter((item: any) => {
       return item.id === val.id
     })[0]
@@ -39,14 +42,17 @@ export class TodoListComponent implements OnInit {
     const temp = [...this.dataOg]
     temp[index] = { ...this.dataOg[index], status: item.checked ? 1 : -1 }
     this.dataSideEffectHelper({ list: [...temp] })
+    this.loading = false
   }
 
   public async handleItemRemove(val: Todo.ItemFe): Promise<void> {
+    this.loading = true
     const id: number = this.dataOg.filter((item: Todo.ItemFe) => {
       return item.id === val.id
     })[0].id
     const target: Todo.ItemHttpResponse = await this.controller.deleteItem(id)
     this.dataSideEffectHelper({ list: this.dataOg.filter((item: Todo.ItemFe) => item.id !== target.id) })
+    this.loading = false
   }
 
   // @ts-ignore
@@ -59,13 +65,16 @@ export class TodoListComponent implements OnInit {
   public currentTab: number = 0
 
   public async handleEnter(): Promise<void> {
+    this.loading = true
     const item: Todo.ItemHttpResponse = await this.controller.createItem(this.inputVal)
     this.dataSideEffectHelper({ list: [{ ...item }, ...this.dataOg] })
     this.inputVal = ''
     this.inputValNative.nativeElement.value = ''
+    this.loading = false
   }
 
   public async handleItemCheckAll(): Promise<void> {
+    this.loading = true
     for await (let item of this.dataOg) {
       await this.controller.updateItem({ id: item.id, value: item.value, status: this.checkMode ? 1 : -1 })
     }
@@ -73,9 +82,11 @@ export class TodoListComponent implements OnInit {
     temp = temp.map((item: Todo.ItemFe) => ({ ...item, status: this.checkMode ? 1 : -1, checked: !this.checkMode }))
     this.dataSideEffectHelper({ list: [...temp] })
     this.checkMode = !this.checkMode
+    this.loading = false
   }
 
   public async handleTabUpdate(val: number): Promise<void> {
+    this.loading = true
     let item: Array<Todo.HttpResponse> = []
     if(val === 1) {
       item = await this.controller.getItemsSelect(1)
@@ -92,9 +103,11 @@ export class TodoListComponent implements OnInit {
     } else {
       alert('No Items in this tab...')
     }
+    this.loading = false
   }
 
   public async handleClearCompleted(): Promise<void> {
+    this.loading = true
     const temp: Array<Todo.ItemFe> = this.dataOg.filter((item: Todo.ItemFe) => item.status === -1)
     const temp2: Array<Todo.ItemFe> = this.dataOg.filter((item: Todo.ItemFe) => item.status !== -1)
     if(temp.length) {
@@ -105,9 +118,11 @@ export class TodoListComponent implements OnInit {
     } else {
       alert('No Completed Items')
     }
+    this.loading = false
   }
 
   public async handleItemInput(val: Todo.ItemFe): Promise<void> {
+    this.loading = true
     const item: Todo.ItemFe = this.dataOg.filter((item: any) => {
       return item.id === val.id
     })[0]
@@ -116,6 +131,7 @@ export class TodoListComponent implements OnInit {
     const temp: Array<Todo.ItemFe> = [...this.dataOg]
     temp[index] = { ...temp[index], value: val.value }
     this.dataSideEffectHelper({ list: [...temp]})
+    this.loading = false
   }
 
   private pageLimit: number = 5
@@ -175,6 +191,7 @@ export class TodoListComponent implements OnInit {
   }
 
   private async initItems(flag: number): Promise<void> {
+    this.loading = true
     let data: Array<Todo.HttpResponse> = []
     if(flag === 0) {
       data = await this.controller.getItems()
@@ -184,6 +201,9 @@ export class TodoListComponent implements OnInit {
       data = await this.controller.getItemsSelect(-1)
     }
     this.dataSideEffectHelper({ list: [...data] })
+    setTimeout(() => {
+      this.loading = false
+    }, 1200)
   }
 
   public async ngOnInit(): Promise<void> {

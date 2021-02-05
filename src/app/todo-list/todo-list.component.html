@@ -1,25 +1,29 @@
-<div class="todoList">
-  <div class="todoList__input">
-    <div class="todoList__inputCb" (click)="handleItemCheckAll()">v</div>
-    <input type="text" class="todoList__inputItem" (input)="handleChange($event)" (change)="handleEnter()" #inputValNative/>
-  </div>
-  <div class="todoList__item">
-    <app-todo-item *ngFor="let item of data; let itemIndex = index;" [val]="item" (itemChecked)="handleItemCheck($event)" (itemRemove)="handleItemRemove($event)" (itemInput)="handleItemInput($event)"></app-todo-item>
-  </div>
-  <div class="todoList__pagination">
-    <div class="todoList__paginationBtn todoList__paginationBtn--prev" [class.todoList__paginationBtn--disabled]="currentPage === 1" (click)="handlePageUpdate(-1)">{{ '<' }}</div>
-    {{ currentPage + ' / ' + totalPages }}
-    <div class="todoList__paginationBtn todoList__paginationBtn--next" [class.todoList__paginationBtn--disabled]="currentPage === totalPages" (click)="handlePageUpdate(1)">{{ '>' }}</div>
-  </div>
-  <div class="todoList__footer">
-    <div class="todoList__footerCount">{{ dataActiveCount }} items left</div>
-    <div class="todoList__footerTabs">
-      <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 0" (click)="handleTabUpdate(0)">All</div>
-      <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 1" (click)="handleTabUpdate(1)">Active</div>
-      <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 2" (click)="handleTabUpdate(2)">Completed</div>
+<div>
+  <app-base-loader [loading]="loading"></app-base-loader>
+  <div class="todoList">
+    <div class="todoList__input">
+      <div class="todoList__inputCb" (click)="handleItemCheckAll()">v</div>
+      <input type="text" class="todoList__inputItem" (input)="handleChange($event)" (change)="handleEnter()" #inputValNative/>
     </div>
-    <div class="todoList__footerClear" (click)="handleClearCompleted()">
-      Clear completed
+    <div class="todoList__item">
+      <app-todo-item *ngFor="let item of data; let itemIndex = index;" [val]="item" (itemChecked)="handleItemCheck($event)" (itemRemove)="handleItemRemove($event)" (itemInput)="handleItemInput($event)"></app-todo-item>
+    </div>
+    <div class="todoList__pagination">
+      <div class="todoList__paginationBtn todoList__paginationBtn--prev" [class.todoList__paginationBtn--disabled]="currentPage === 1" (click)="handlePageUpdate(-1)">{{ '<' }}</div>
+      {{ currentPage + ' / ' + totalPages }}
+      <div class="todoList__paginationBtn todoList__paginationBtn--next" [class.todoList__paginationBtn--disabled]="currentPage === totalPages" (click)="handlePageUpdate(1)">{{ '>' }}</div>
+    </div>
+    <div class="todoList__footer">
+      <div class="todoList__footerCount">{{ dataActiveCount }} items left</div>
+      <div class="todoList__footerTabs">
+        <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 0" (click)="handleTabUpdate(0)">All</div>
+        <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 1" (click)="handleTabUpdate(1)">Active</div>
+        <div class="todoList__footerTabsItem" [class.todoList__footerTabsItem--active]="currentTab === 2" (click)="handleTabUpdate(2)">Completed</div>
+      </div>
+      <div class="todoList__footerClear" (click)="handleClearCompleted()">
+        Clear completed
+      </div>
     </div>
   </div>
 </div>
+

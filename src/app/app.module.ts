@@ -8,13 +8,17 @@ import { TodoItemComponent } from './todo-item/todo-item.component';
 import { TodoListComponent } from './todo-list/todo-list.component';
 import { GraphQLModule } from './graphql.module';
 import { HttpClientModule } from '@angular/common/http';
+import { NewComponentComponent } from './new-component/new-component.component';
+import { BaseLoaderComponent } from './base-loader/base-loader.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     BaseHeaderComponent,
     TodoItemComponent,
-    TodoListComponent
+    TodoListComponent,
+    NewComponentComponent,
+    BaseLoaderComponent
   ],
   imports: [
     BrowserModule,

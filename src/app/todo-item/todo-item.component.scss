@@ -24,6 +24,25 @@
       text-decoration: line-through;
     }
   }
+  &__input {
+    margin-left: 15px;
+    border: none;
+    font-size: 24px;
+    font-weight: 100;
+    &--active {
+      width: 99.6%;
+      height: 100%;
+      margin-top: -15px;
+      margin-bottom: -15px;
+      padding: 15px 0;
+      outline: none;
+      border: 1px solid #999;
+      box-shadow: inset 0 -1px 5px 0 rgb(0 0 0 / 20%);
+    }
+    &:focus {
+
+    }
+  }
   &__cb {
     position: absolute;
     left: 15px;

@@ -4,7 +4,7 @@
     <input type="text" class="todoList__inputItem" (input)="handleChange($event)" (change)="handleEnter()" #inputValNative/>
   </div>
   <div class="todoList__item">
-    <app-todo-item *ngFor="let item of data; let itemIndex = index;" [val]="item" (itemChecked)="handleItemCheck($event)" (itemRemove)="handleItemRemove($event)"></app-todo-item>
+    <app-todo-item *ngFor="let item of data; let itemIndex = index;" [val]="item" (itemChecked)="handleItemCheck($event)" (itemRemove)="handleItemRemove($event)" (itemInput)="handleItemInput($event)"></app-todo-item>
   </div>
   <div class="todoList__pagination">
     <div class="todoList__paginationBtn todoList__paginationBtn--prev" [class.todoList__paginationBtn--disabled]="currentPage === 1" (click)="handlePageUpdate(-1)">{{ '<' }}</div>

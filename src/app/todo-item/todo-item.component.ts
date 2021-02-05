@@ -1,4 +1,5 @@
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Todo } from '../types';
 
 @Component({
   selector: 'app-todo-item',
@@ -10,21 +11,34 @@ export class TodoItemComponent implements OnInit {
   @Input() val: any = {}
 
   @Output()
-  itemChecked: EventEmitter<string> = new EventEmitter<string>()
+  itemChecked: EventEmitter<Todo.ItemFe> = new EventEmitter<Todo.ItemFe>()
 
   @Output()
-  itemRemove: EventEmitter<string> = new EventEmitter<string>()
+  itemRemove: EventEmitter<Todo.ItemFe> = new EventEmitter<Todo.ItemFe>()
+
+  @Output()
+  itemInput: EventEmitter<Todo.ItemFe> = new EventEmitter<Todo.ItemFe>()
 
   constructor() { }
 
   public showCross: boolean = false
 
-  public handleItemCheck(val: any): void {
+  public showInput: boolean = false
+
+  public handleItemCheck(val: Todo.ItemFe): void {
     this.itemChecked.emit(val)
   }
 
-  public handleItemRemove(val: any): void {
+  public handleItemRemove(val: Todo.ItemFe): void {
     this.itemRemove.emit(val)
+  }
+
+  public handleItemInput(e: any, val: Todo.ItemFe): void {
+    if(e.target.value !== '') {
+      this.itemInput.emit({ ...val, value: e.target.value })
+    } else {
+      alert('Please enter value.')
+    }
   }
 
   ngOnInit(): void {

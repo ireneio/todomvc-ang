@@ -2,6 +2,21 @@
   <label class="item__cb" [for]="val.id" [class.item__cb--checked]="val.checked">
     <input type="checkbox" [name]="val.id" [id]="val.id" (change)="handleItemCheck(val)" />
   </label>
-  <div class="item__text" [class.item__text--crossed]="val.checked">{{ val.val }}</div>
+  <div
+    class="item__text"
+    [class.item__text--crossed]="val.checked"
+    (click)="showInput = true"
+    [style]="{ display: showInput ? 'none' : 'block' }"
+  >
+    {{ val.value }}
+  </div>
+  <input
+    type="text"
+    class="item__input"
+    [class]="{'item__input--active': showInput }"
+    [value]="val.value"
+    (change)="handleItemInput($event, val)"
+    [style]="{ display: showInput ? 'block' : 'none' }"
+  >
   <div class="item__cross" [class.item__cross--active]="showCross" (click)="handleItemRemove(val)">X</div>
 </div>

@@ -1,7 +1,8 @@
-import { temporaryAllocator } from '@angular/compiler/src/render3/view/util';
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Apollo, gql } from 'apollo-angular';
-import { Subscription } from 'rxjs';
+
+import { Todo } from '../types/index';
+import TodoOperations from '../utils/todoController'
 
 @Component({
   selector: 'app-todo-list',
@@ -9,15 +10,19 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./todo-list.component.scss']
 })
 export class TodoListComponent implements OnInit {
-  constructor(private apollo: Apollo) { }
+  constructor(private apollo: Apollo) {
+    this.controller = new TodoOperations(apollo)
+  }
 
-  public inputVal: string = ''
+  private controller: TodoOperations
 
-  public checkMode: boolean = false
+  private inputVal: string = ''
 
-  public dataOg: Array<any> = []
+  private checkMode: boolean = false
 
-  public data: Array<any> = [
+  private dataOg: Array<Todo.ItemFe> = []
+
+  public data: Array<Todo.ItemFe> = [
     ...this.dataOg
   ]
 
@@ -25,21 +30,23 @@ export class TodoListComponent implements OnInit {
     return this.dataOg.filter((item: any) => item.checked === false).length
   }
 
-  public handleItemCheck(val: any): void {
-    const item = this.dataOg.filter((item: any) => {
+  public async handleItemCheck(val: Todo.ItemFe): Promise<void> {
+    const item: Todo.ItemFe = this.dataOg.filter((item: any) => {
       return item.id === val.id
     })[0]
-    this.updateItem({ id: item.id, value: item.value, status: item.checked ? 1 : -1 })
-    this.getItems()
+    const target: Todo.ItemHttpResponse = await this.controller.updateItem({ id: item.id, value: item.value, status: item.checked ? 1 : -1 })
+    const index: number = this.dataOg.findIndex((item: Todo.ItemFe) => item.id === target.id)
+    const temp = [...this.dataOg]
+    temp[index] = { ...this.dataOg[index], status: item.checked ? 1 : -1 }
+    this.dataSideEffectHelper({ list: [...temp] })
   }
 
-  public async handleItemRemove(val: any): Promise<void> {
-    const id = this.dataOg.filter((item: any) => {
+  public async handleItemRemove(val: Todo.ItemFe): Promise<void> {
+    const id: number = this.dataOg.filter((item: Todo.ItemFe) => {
       return item.id === val.id
     })[0].id
-
-    await this.deleteItem(id)
-    await this.getItems()
+    const target: Todo.ItemHttpResponse = await this.controller.deleteItem(id)
+    this.dataSideEffectHelper({ list: this.dataOg.filter((item: Todo.ItemFe) => item.id !== target.id) })
   }
 
   // @ts-ignore
@@ -52,41 +59,66 @@ export class TodoListComponent implements OnInit {
   public currentTab: number = 0
 
   public async handleEnter(): Promise<void> {
-    await this.createItem(this.inputVal)
+    const item: Todo.ItemHttpResponse = await this.controller.createItem(this.inputVal)
+    this.dataSideEffectHelper({ list: [{ ...item }, ...this.dataOg] })
     this.inputVal = ''
     this.inputValNative.nativeElement.value = ''
-    await this.getItems()
   }
 
-  public handleItemCheckAll(): void {
-    this.data = this.data.map((item: any) => {
-      return { ...item, checked: !this.checkMode }
-    })
+  public async handleItemCheckAll(): Promise<void> {
+    for await (let item of this.dataOg) {
+      await this.controller.updateItem({ id: item.id, value: item.value, status: this.checkMode ? 1 : -1 })
+    }
+    let temp = [...this.dataOg]
+    temp = temp.map((item: Todo.ItemFe) => ({ ...item, status: this.checkMode ? 1 : -1, checked: !this.checkMode }))
+    this.dataSideEffectHelper({ list: [...temp] })
     this.checkMode = !this.checkMode
   }
 
   public async handleTabUpdate(val: number): Promise<void> {
-    this.currentTab = val
+    let item: Array<Todo.HttpResponse> = []
     if(val === 1) {
-      await this.getItemsSelect(0)
+      item = await this.controller.getItemsSelect(1)
     } else if(val === 2) {
-      await this.getItemsSelect(-1)
+      item = await this.controller.getItemsSelect(-1)
     } else {
-      await this.getItems()
+      item = await this.controller.getItems()
+    }
+    console.log(item)
+    if(item.length) {
+      window.localStorage.setItem('t', val.toString())
+      this.currentTab = val
+      this.dataSideEffectHelper({ list: [...item]})
+    } else {
+      alert('No Items in this tab...')
     }
   }
 
-  public handleClearCompleted(): void {
-    const temp = this.dataOg.filter((item: any) => item.checked === true)
+  public async handleClearCompleted(): Promise<void> {
+    const temp: Array<Todo.ItemFe> = this.dataOg.filter((item: Todo.ItemFe) => item.status === -1)
+    const temp2: Array<Todo.ItemFe> = this.dataOg.filter((item: Todo.ItemFe) => item.status !== -1)
     if(temp.length) {
       for(let i = 0; i < temp.length; i++) {
-        this.deleteItem(temp[i].id)
+        await this.controller.deleteItem(temp[i].id)
       }
-      this.getItems()
+      this.dataSideEffectHelper({ list: [...temp2] })
+    } else {
+      alert('No Completed Items')
     }
   }
 
-  public pageLimit: number = 5
+  public async handleItemInput(val: Todo.ItemFe): Promise<void> {
+    const item: Todo.ItemFe = this.dataOg.filter((item: any) => {
+      return item.id === val.id
+    })[0]
+    const target: Todo.ItemHttpResponse = await this.controller.updateItem({ id: item.id, value: val.value, status: item.status })
+    const index: number = this.dataOg.findIndex((item: Todo.ItemFe) => item.id === target.id)
+    const temp: Array<Todo.ItemFe> = [...this.dataOg]
+    temp[index] = { ...temp[index], value: val.value }
+    this.dataSideEffectHelper({ list: [...temp]})
+  }
+
+  private pageLimit: number = 5
 
   public get totalPages(): number {
     return Math.ceil(this.dataOg.length / this.pageLimit)
@@ -103,77 +135,17 @@ export class TodoListComponent implements OnInit {
    this.data = this.pageUpdateHelper()
   }
 
-  private pageUpdateHelper(arr?: Array<any>): Array<any> {
-    let target: Array<any> = [...this.dataOg]
+  private pageUpdateHelper(arr?: Array<Todo.ItemFe>): Array<Todo.ItemFe> {
+    let target: Array<Todo.ItemFe> = [...this.dataOg]
     if(arr) {
       target = [...arr]
     }
-    const res = target.filter((item: any, index: number) => {
+    const res: Array<Todo.ItemFe> = target.filter((item: any, index: number) => {
       const min = (this.currentPage - 1) * this.pageLimit
       const max = min + this.pageLimit - 1
       return index <= max && index >= min
     })
     return res
-  }
-
-  private async getItems(): Promise<void> {
-    await this.gqlQueryRequestHelper(`
-      query {
-        list {
-          id
-          status
-          value
-        }
-      }
-    `)
-  }
-
-  private async getItemsSelect(status: number): Promise<void> {
-    await this.gqlQueryRequestHelper(`
-      query {
-        listQuery(status: ${status}) {
-          id
-          status
-          value
-        }
-      }
-    `)
-  }
-
-  private async updateItem({ id, status, value }: {id: number, status?: number, value?: string}): Promise<void> {
-    await this.gqlMutationRequestHelper(`
-      mutation {
-        update(id: ${id + ',' + (status ? 'status:' + status : '') + ',' + (value ? 'value:' + `"${value}"` : '')}) {
-            id,
-            value,
-            status
-        }
-      }
-    `)
-  }
-
-  private async deleteItem(id: number): Promise<void> {
-    await this.gqlMutationRequestHelper(`
-      mutation {
-        delete(id: ${id}) {
-            id,
-            value,
-            status
-        }
-      }
-    `)
-  }
-
-  private async createItem(value: string): Promise<void> {
-    await this.gqlMutationRequestHelper(`
-      mutation {
-        create(value: "${value}") {
-            id,
-            value,
-            status
-        }
-      }
-    `)
   }
 
   private dataSideEffectHelper(data: { list?: any, listQuery?: any }): void {
@@ -190,42 +162,38 @@ export class TodoListComponent implements OnInit {
     this.data = this.pageUpdateHelper()
   }
 
-  private gqlQueryRequestHelper(query: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.apollo
-      .watchQuery({
-        query: gql(query),
-      })
-      .valueChanges
-      .subscribe((result: any) => {
-        try {
-          const { data } = result
-          console.log('got data: ', data)
-          this.dataSideEffectHelper(data)
-          resolve(true)
-        } catch(e) {
-          console.log(e.message)
-          reject(e.message)
-        }
-      })
+  private initCheckMode(): boolean {
+    let flag: boolean = false
+    this.dataOg.forEach((item: any) => {
+      if(item.status && item.status === -1) {
+        flag = true
+      } else {
+        flag = false
+      }
     })
+    return flag
   }
 
-  private gqlMutationRequestHelper(query: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      this.apollo.mutate({
-        mutation: gql(query)
-      }).subscribe(({ data }) => {
-        console.log('got data', data)
-        resolve(true)
-      },(error) => {
-        console.log('there was an error sending the query', error)
-        reject(error)
-      })
-    })
+  private async initItems(flag: number): Promise<void> {
+    let data: Array<Todo.HttpResponse> = []
+    if(flag === 0) {
+      data = await this.controller.getItems()
+    } else if(flag === 1) {
+      data = await this.controller.getItemsSelect(1)
+    } else if(flag === 2) {
+      data = await this.controller.getItemsSelect(-1)
+    }
+    this.dataSideEffectHelper({ list: [...data] })
   }
 
-  async ngOnInit(): Promise<void> {
-    await this.getItems()
+  public async ngOnInit(): Promise<void> {
+    this.checkMode = this.initCheckMode()
+    const t: string | null = window.localStorage.getItem('t')
+    if(t !== null) {
+      await this.initItems(Number(t))
+      this.currentTab = Number(t)
+    } else {
+      await this.initItems(0)
+    }
   }
 }
